@@ -29,5 +29,5 @@ gen:
 			--plugin=protoc-gen-validate=bin/protoc-gen-validate.exe \
 			--openapiv2_out=allow_merge=true,merge_file_name=api_shop_v1:docs \
 			--plugin=protoc-gen-openapiv2=bin/protoc-gen-openapiv2.exe \
-			api/shop_v1/shop.proto	
+			api/shop_v1/shop.proto
 		
