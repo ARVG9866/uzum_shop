@@ -15,7 +15,7 @@ service ShopV1 {
         };
     };
 
-    rpc GetProducts(google.protobuf.Empty) returns (GetProduct.Response) {
+    rpc GetProducts(google.protobuf.Empty) returns (GetProducts.Response) {
         option (google.api.http) = {
             get: "/shop/v1/products"
         };
@@ -60,6 +60,12 @@ service ShopV1 {
         };
     };
 
+    rpc Healthz(google.protobuf.Empty) returns (google.protobuf.Empty){
+        option (google.api.http) = {
+          get: "/shop/v1/healthz"
+        };
+      }
+
 }
 
 message GetProduct {
@@ -97,9 +103,9 @@ message DeleteProduct {
 }
 
 message GetBasket {
-    message Request {
-        int64 user_id = 1;
-    }
+    // message Request {
+    //     int64 user_id = 1;
+    // }
 
     message Response {
         repeated Basket basket = 1;
@@ -145,23 +151,16 @@ message Basket {
 }
 
 message BasketForUpdate {
-    int64 user_id = 1;
-    int64 product_id = 2;
-    int64 count = 3;
+    int64 product_id = 1;
+    int64 count = 2;
 }
 
 message Order {
     int64 id = 1;
-    int64 user_id = 2;
-    repeated Product products_id = 3;
-    string address = 4;
-    float coordinate_address_x = 5 [json_name = "coordinate_address_x"];
-    float coordinate_address_y = 6 [json_name = "coordinate_address_y"];
-    float coordinate_point_x = 7 [json_name = "coordinate_point_x"];
-    float coordinate_point_y = 8 [json_name = "coordinate_point_y"];
-    google.protobuf.Timestamp create_at = 9 [json_name = "create_at"];
-    google.protobuf.Timestamp start_at = 10 [json_name = "start_at"];
-    google.protobuf.Timestamp delivery_at = 11 [json_name = "delivery_at"];
-    int64 courier_id = 12;
-    string delivery_status = 13;
+    string address = 2;
+    float coordinate_address_x = 3 [json_name = "coordinate_address_x"];
+    float coordinate_address_y = 4 [json_name = "coordinate_address_y"];
+    float coordinate_point_x = 5 [json_name = "coordinate_point_x"];
+    float coordinate_point_y = 6 [json_name = "coordinate_point_y"];
+    int64 courier_id = 7;
 }

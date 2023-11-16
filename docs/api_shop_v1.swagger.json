@@ -132,6 +132,29 @@
         ]
       }
     },
+    "/shop/v1/healthz": {
+      "get": {
+        "operationId": "ShopV1_Healthz",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "ShopV1"
+        ]
+      }
+    },
     "/shop/v1/order": {
       "post": {
         "operationId": "ShopV1_CreateOrder",
@@ -234,7 +257,7 @@
           "200": {
             "description": "A successful response.",
             "schema": {
-              "$ref": "#/definitions/shopGetProductResponse"
+              "$ref": "#/definitions/shopGetProductsResponse"
             }
           },
           "default": {
@@ -311,10 +334,6 @@
     "shopBasketForUpdate": {
       "type": "object",
       "properties": {
-        "userId": {
-          "type": "string",
-          "format": "int64"
-        },
         "productId": {
           "type": "string",
           "format": "int64"
@@ -362,6 +381,18 @@
         }
       }
     },
+    "shopGetProductsResponse": {
+      "type": "object",
+      "properties": {
+        "product": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/shopProductForGetAll"
+          }
+        }
+      }
+    },
     "shopOrder": {
       "type": "object",
       "properties": {
@@ -376,8 +407,8 @@
         "productsId": {
           "type": "array",
           "items": {
-            "type": "object",
-            "$ref": "#/definitions/shopProduct"
+            "type": "string",
+            "format": "int64"
           }
         },
         "address": {
@@ -440,6 +471,22 @@
         "count": {
           "type": "string",
           "format": "int64"
+        }
+      }
+    },
+    "shopProductForGetAll": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "int64"
+        },
+        "name": {
+          "type": "string"
+        },
+        "price": {
+          "type": "number",
+          "format": "double"
         }
       }
     },

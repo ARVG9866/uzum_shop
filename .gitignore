@@ -7,8 +7,7 @@
 *.dll
 *.so
 *.dylib
-bin
-pkg
+
 # Test binary, built with `go test -c`
 *.test
 
@@ -20,3 +19,5 @@ pkg
 
 # Go workspace file
 go.work
+bin/
+pkg/
