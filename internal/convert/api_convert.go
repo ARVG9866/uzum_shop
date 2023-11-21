@@ -61,9 +61,8 @@ func PbToModelOrder(order *pb.Order) *models.CreateOrder {
 	}
 }
 
-func GetModelOrder(createOrder *models.CreateOrder, products []*models.OrderProduct) *models.Order {
+func GetModelOrder(createOrder *models.CreateOrder) *models.Order {
 	return &models.Order{
-		Products:             products,
 		Address:              createOrder.Address,
 		Coordinate_address_x: createOrder.Coordinate_address_x,
 		Coordinate_address_y: createOrder.Coordinate_address_y,

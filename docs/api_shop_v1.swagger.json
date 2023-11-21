@@ -400,17 +400,6 @@
           "type": "string",
           "format": "int64"
         },
-        "userId": {
-          "type": "string",
-          "format": "int64"
-        },
-        "productsId": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "int64"
-          }
-        },
         "address": {
           "type": "string"
         },
@@ -430,24 +419,9 @@
           "type": "number",
           "format": "float"
         },
-        "create_at": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "start_at": {
-          "type": "string",
-          "format": "date-time"
-        },
-        "delivery_at": {
-          "type": "string",
-          "format": "date-time"
-        },
         "courierId": {
           "type": "string",
           "format": "int64"
-        },
-        "deliveryStatus": {
-          "type": "string"
         }
       }
     },

@@ -17,4 +17,6 @@ type IStorage interface {
 	DeleteOrder(ctx context.Context, order_id int64) error
 	// UpdateProduct(ctx context.Context, product_id int64, count int64) error
 	UpdateBasketForOrder(ctx context.Context, basket []*models.Basket) ([]*models.OrderProduct, error)
+	AddToOrder(ctx context.Context, products []*models.OrderProduct, order_id int64) error
+	EmptyBasket(ctx context.Context) error
 }

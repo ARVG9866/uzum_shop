@@ -4,13 +4,15 @@ import (
 	"context"
 	"log"
 
-	"github.com/ARVG9866/uzum_shop/docs"
-	"github.com/ARVG9866/uzum_shop/internal/api"
+	_ "github.com/lib/pq"
+
+	gateway_runtime "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/jmoiron/sqlx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	gateway_runtime "github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
+	"github.com/ARVG9866/uzum_shop/docs"
+	"github.com/ARVG9866/uzum_shop/internal/api"
 
 	pb_shop "github.com/ARVG9866/uzum_shop/pkg/shop_v1"
 )

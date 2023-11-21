@@ -3,6 +3,7 @@ package postgresql
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/ARVG9866/uzum_shop/internal/models"
@@ -13,7 +14,8 @@ import (
 
 const productTable = "product"
 const basketTable = "basket"
-const orderTable = "order"
+const orderTable = `"order"`
+const orderProductTable = "order_product"
 
 type storage struct {
 	db *sqlx.DB
@@ -28,7 +30,7 @@ func (s *storage) GetProduct(ctx context.Context, product_id int64) (*models.Pro
 
 	query := squirrel.Select("id", "name", "description", "price", "count").
 		From(productTable).
-		Where(squirrel.Eq{"product_id": product_id}).
+		Where(squirrel.Eq{"id": product_id}).
 		RunWith(s.db).
 		PlaceholderFormat(squirrel.Dollar)
 
@@ -95,10 +97,25 @@ func (s *storage) DeleteFromBasket(ctx context.Context, product_id int64) error 
 	return nil
 }
 
+func (s *storage) EmptyBasket(ctx context.Context) error {
+	user_id := getUserId(ctx)
+
+	query := squirrel.Delete(basketTable).
+		Where(squirrel.Eq{"user_id": user_id}).
+		RunWith(s.db).
+		PlaceholderFormat(squirrel.Dollar)
+
+	if _, err := query.ExecContext(ctx); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (s *storage) UpdateBasket(ctx context.Context, basket *models.UpdateBasket) error {
 	user_id := getUserId(ctx)
 
-	query := squirrel.Update(productTable).
+	query := squirrel.Update(basketTable).
 		SetMap(map[string]interface{}{
 			"count": basket.Count,
 		}).
@@ -146,21 +163,20 @@ func (s *storage) GetAllBasket(ctx context.Context) ([]*models.Basket, error) {
 }
 
 func (s *storage) CreateOrder(ctx context.Context, order *models.Order) (int64, error) {
+	user_id := getUserId(ctx)
+
 	query := squirrel.Insert(orderTable).
-		Columns("user_id", "products_id", "address", "coordinate_address_x", "coordinate_address_y", "coordinates_point_x",
-			"coordinates_point_y", "created_at", "start_at", "courier_id", "delivery_status").
-		Values(order.User_id, order.Products, order.Address, order.Coordinate_address_x, order.Coordinate_address_y, order.Coordinate_point_x,
+		Columns("user_id", "address", "coordinate_address_x", "coordinate_address_y", "coordinate_point_x",
+			"coordinate_point_y", "create_at", "start_at", "courier_id", "delivery_status").
+		Values(user_id, order.Address, order.Coordinate_address_x, order.Coordinate_address_y, order.Coordinate_point_x,
 			order.Coordinate_point_y, order.Create_at, order.Start_at, order.Courier_id, order.Delivery_status).
+		Suffix("RETURNING \"id\"").
 		RunWith(s.db).
-		PlaceholderFormat(squirrel.Dollar).
-		Suffix(`RETURNING 
-				"id"
-				`)
+		PlaceholderFormat(squirrel.Dollar)
 
 	var order_id int64
 
 	err := query.QueryRowContext(ctx).Scan(&order_id)
-
 	if err != nil {
 		return 0, err
 	}
@@ -169,29 +185,29 @@ func (s *storage) CreateOrder(ctx context.Context, order *models.Order) (int64, 
 }
 
 func (s *storage) DeleteOrder(ctx context.Context, order_id int64) error {
-	order, err := s.GetOrder(ctx, order_id)
+	str_query := fmt.Sprintf("SELECT product_id, count FROM %s WHERE order_id = %d", orderProductTable, order_id)
+	rows, err := s.db.QueryContext(ctx, str_query)
 	if err != nil {
 		return err
 	}
-	products := order.Products
+
+	defer rows.Close()
 
 	tx, err := s.db.Beginx()
 	if err != nil {
 		return err
 	}
 
-	for _, product := range products {
-		// todo
-		// kak sdelat count + product.Count ???
-		query := squirrel.Update(productTable).
-			SetMap(map[string]interface{}{
-				"count": product.Count,
-			}).
-			Where(squirrel.Eq{"product_id": product.Product_id}).
-			RunWith(tx).
-			PlaceholderFormat(squirrel.Dollar)
+	for rows.Next() {
+		var product models.OrderProduct
 
-		_, err = query.ExecContext(ctx)
+		err = rows.Scan(&product.Product_id, &product.Count)
+		if err != nil {
+			return err
+		}
+		str_query = fmt.Sprintf("UPDATE %s SET count = count + %d WHERE id = %d",
+			productTable, product.Count, product.Product_id)
+		_, err := tx.ExecContext(ctx, str_query)
 		if err != nil {
 			errRollback := tx.Rollback()
 			if errRollback != nil {
@@ -200,6 +216,7 @@ func (s *storage) DeleteOrder(ctx context.Context, order_id int64) error {
 			return err
 		}
 	}
+
 	query := squirrel.Delete(orderTable).
 		Where(squirrel.Eq{"id": order_id}).
 		RunWith(tx).
@@ -221,31 +238,42 @@ func (s *storage) DeleteOrder(ctx context.Context, order_id int64) error {
 	return nil
 }
 
-func (s *storage) GetOrder(ctx context.Context, order_id int64) (*models.Order, error) {
-	var order *models.Order
+// func (s *storage) GetOrder(ctx context.Context, order_id int64) (*models.Order, error) {
+// 	var order *models.Order
 
-	query := squirrel.Select("user_id", "products_id", "address", "coordinate_address_x", "coordinate_address_y", "coordinates_point_x",
-		"coordinates_point_y", "created_at", "start_at", "delivery_at", "courier_id", "delivery_status").
-		From(orderTable).
-		Where(squirrel.Eq{"id": order_id}).
-		RunWith(s.db).
-		PlaceholderFormat(squirrel.Dollar)
+// 	query := squirrel.Select("user_id", "address", "coordinate_address_x", "coordinate_address_y", "coordinates_point_x",
+// 		"coordinates_point_y", "created_at", "start_at", "delivery_at", "courier_id", "delivery_status").
+// 		From(orderTable).
+// 		Where(squirrel.Eq{"id": order_id}).
+// 		RunWith(s.db).
+// 		PlaceholderFormat(squirrel.Dollar)
 
-	err := query.QueryRowContext(ctx).Scan(&order.User_id, order.Products, order.Address, order.Coordinate_address_x,
-		order.Coordinate_address_y, order.Coordinate_point_x, order.Coordinate_point_y, order.Create_at,
-		order.Start_at, order.Delivery_at, order.Courier_id, order.Delivery_status)
-	if err != nil {
-		return nil, err
+// 	err := query.QueryRowContext(ctx).Scan(&order.User_id, order.Address, order.Coordinate_address_x,
+// 		order.Coordinate_address_y, order.Coordinate_point_x, order.Coordinate_point_y, order.Create_at,
+// 		order.Start_at, order.Delivery_at, order.Courier_id, order.Delivery_status)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return order, nil
+
+// }
+
+func (s *storage) AddToOrder(ctx context.Context, products []*models.OrderProduct, order_id int64) error {
+	query := squirrel.Insert(orderProductTable).Columns("order_id", "product_id", "count")
+
+	for _, product := range products {
+		query = query.Values(order_id, product.Product_id, product.Count)
 	}
 
-	return order, nil
+	query = query.RunWith(s.db).PlaceholderFormat(squirrel.Dollar)
 
+	if _, err := query.ExecContext(ctx); err != nil {
+		return err
+	}
+
+	return nil
 }
-
-// func (s *storage) UpdateProduct(ctx context.Context, product_id int64, count int64) error {
-// 	// todo
-// 	return nil
-// }
 
 func (s *storage) UpdateBasketForOrder(ctx context.Context, basket []*models.Basket) ([]*models.OrderProduct, error) {
 	tx, err := s.db.Beginx()
@@ -280,7 +308,7 @@ func (s *storage) UpdateBasketForOrder(ctx context.Context, basket []*models.Bas
 			SetMap(map[string]interface{}{
 				"count": res.Count - product.Count,
 			}).
-			Where(squirrel.Eq{"product_id": product.Product_id}).
+			Where(squirrel.Eq{"id": product.Product_id}).
 			RunWith(tx).
 			PlaceholderFormat(squirrel.Dollar)
 

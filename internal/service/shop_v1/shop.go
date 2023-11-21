@@ -58,6 +58,7 @@ func (s *service) DeleteProduct(ctx context.Context, product_id int64) error {
 }
 
 func (s *service) AddToBasket(ctx context.Context, basket *models.Basket) error {
+	// check if exist => update
 	res, err := s.GetProduct(ctx, basket.Product_id)
 	if err != nil {
 		return err
@@ -76,6 +77,7 @@ func (s *service) AddToBasket(ctx context.Context, basket *models.Basket) error 
 }
 
 func (s *service) UpdateBasket(ctx context.Context, basket *models.UpdateBasket) error {
+	// check exist
 	res, err := s.GetProduct(ctx, basket.Product_id)
 	if err != nil {
 		return err
@@ -120,14 +122,21 @@ func (s *service) CreateOrder(ctx context.Context, order *models.CreateOrder) (i
 		return 0, err
 	}
 
-	modelOrder := convert.GetModelOrder(order, products)
+	modelOrder := convert.GetModelOrder(order)
 
-	res, err := s.storage.CreateOrder(ctx, modelOrder)
+	order_id, err := s.storage.CreateOrder(ctx, modelOrder)
 	if err != nil {
-		return res, err
+		return order_id, err
 	}
 
-	return res, nil
+	err = s.storage.AddToOrder(ctx, products, order_id)
+	if err != nil {
+		return order_id, err
+	}
+
+	err = s.storage.EmptyBasket(ctx)
+
+	return order_id, nil
 }
 
 func (s *service) CancelOrder(ctx context.Context, order_id int64) error {
