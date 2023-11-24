@@ -344,6 +344,19 @@
         }
       }
     },
+    "shopCoordinate": {
+      "type": "object",
+      "properties": {
+        "x": {
+          "type": "number",
+          "format": "float"
+        },
+        "y": {
+          "type": "number",
+          "format": "float"
+        }
+      }
+    },
     "shopCreateOrderRequest": {
       "type": "object",
       "properties": {
@@ -403,21 +416,11 @@
         "address": {
           "type": "string"
         },
-        "coordinate_address_x": {
-          "type": "number",
-          "format": "float"
+        "coordinate_address": {
+          "$ref": "#/definitions/shopCoordinate"
         },
-        "coordinate_address_y": {
-          "type": "number",
-          "format": "float"
-        },
-        "coordinate_point_x": {
-          "type": "number",
-          "format": "float"
-        },
-        "coordinate_point_y": {
-          "type": "number",
-          "format": "float"
+        "coordinate_point": {
+          "$ref": "#/definitions/shopCoordinate"
         },
         "courierId": {
           "type": "string",

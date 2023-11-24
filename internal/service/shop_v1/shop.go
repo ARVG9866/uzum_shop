@@ -105,17 +105,16 @@ func (s *service) GetBasket(ctx context.Context) ([]*models.Basket, error) {
 }
 
 func (s *service) CreateOrder(ctx context.Context, order *models.CreateOrder) (int64, error) {
-	if order.Coordinate_address_x == 0 && order.Coordinate_address_y == 0 {
+	if order.Coordinate_address == nil || (order.Coordinate_address.X == 0 || order.Coordinate_address.Y == 0) {
 		coord, err := s.getUserCoordinate(ctx)
 		if err != nil {
 			return 0, err
 		}
 
-		order.Coordinate_address_x = coord.X
-		order.Coordinate_address_y = coord.Y
+		order.Coordinate_address = coord
 	}
 
-	s.rewriteCoordinates(order.Coordinate_address_x, order.Coordinate_address_y)
+	s.rewriteCoordinates(ctx, order.Coordinate_address)
 
 	products, err := s.UpdateProductsForOrder(ctx)
 	if err != nil {
@@ -158,12 +157,25 @@ func (s *service) CancelOrder(ctx context.Context, order_id int64) error {
 // }
 
 func (s *service) getUserCoordinate(ctx context.Context) (*models.Coordinate, error) {
-	//todo
+	coordinate, err := s.storage.GetUserCoordinate(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if coordinate != nil {
+		return coordinate, nil
+	}
+
 	return nil, errors.New("User doesn't have coordinates")
 }
 
-func (s *service) rewriteCoordinates(x float32, y float32) error {
-	//todo
+func (s *service) rewriteCoordinates(ctx context.Context, coordinate *models.Coordinate) error {
+
+	err := s.storage.UpdateUserCoordinate(ctx, coordinate)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

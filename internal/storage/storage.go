@@ -19,4 +19,6 @@ type IStorage interface {
 	UpdateBasketForOrder(ctx context.Context, basket []*models.Basket) ([]*models.OrderProduct, error)
 	AddToOrder(ctx context.Context, products []*models.OrderProduct, order_id int64) error
 	EmptyBasket(ctx context.Context) error
+	GetUserCoordinate(ctx context.Context) (*models.Coordinate, error)
+	UpdateUserCoordinate(ctx context.Context, user *models.Coordinate) error
 }

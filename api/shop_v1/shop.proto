@@ -158,9 +158,12 @@ message BasketForUpdate {
 message Order {
     int64 id = 1;
     string address = 2;
-    float coordinate_address_x = 3 [json_name = "coordinate_address_x"];
-    float coordinate_address_y = 4 [json_name = "coordinate_address_y"];
-    float coordinate_point_x = 5 [json_name = "coordinate_point_x"];
-    float coordinate_point_y = 6 [json_name = "coordinate_point_y"];
-    int64 courier_id = 7;
+    Coordinate coordinate_address = 3 [json_name = "coordinate_address"];
+    Coordinate coordinate_point = 4 [json_name = "coordinate_point"];
+    int64 courier_id = 5;
+}
+
+message Coordinate {
+    float x = 1;
+    float y = 2;
 }

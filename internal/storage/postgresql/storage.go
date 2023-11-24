@@ -16,6 +16,7 @@ const productTable = "product"
 const basketTable = "basket"
 const orderTable = `"order"`
 const orderProductTable = "order_product"
+const userTable = "user"
 
 type storage struct {
 	db *sqlx.DB
@@ -168,8 +169,8 @@ func (s *storage) CreateOrder(ctx context.Context, order *models.Order) (int64, 
 	query := squirrel.Insert(orderTable).
 		Columns("user_id", "address", "coordinate_address_x", "coordinate_address_y", "coordinate_point_x",
 			"coordinate_point_y", "create_at", "start_at", "courier_id", "delivery_status").
-		Values(user_id, order.Address, order.Coordinate_address_x, order.Coordinate_address_y, order.Coordinate_point_x,
-			order.Coordinate_point_y, order.Create_at, order.Start_at, order.Courier_id, order.Delivery_status).
+		Values(user_id, order.Address, order.Coordinate_address.X, order.Coordinate_address.Y, order.Coordinate_point.X,
+			order.Coordinate_point.Y, order.Create_at, order.Start_at, order.Courier_id, order.Delivery_status).
 		Suffix("RETURNING \"id\"").
 		RunWith(s.db).
 		PlaceholderFormat(squirrel.Dollar)
@@ -328,6 +329,44 @@ func (s *storage) UpdateBasketForOrder(ctx context.Context, basket []*models.Bas
 	}
 
 	return products, nil
+}
+
+func (s *storage) GetUserCoordinate(ctx context.Context) (*models.Coordinate, error) {
+	user_id := getUserId(ctx)
+	var coordinate models.Coordinate
+
+	query := squirrel.Select("id", "coordinate_address_x", "coordinate_address_y").
+		From(userTable).
+		Where(squirrel.Eq{"id": user_id}).
+		RunWith(s.db).
+		PlaceholderFormat(squirrel.Dollar)
+
+	err := query.QueryRowContext(ctx).Scan(&coordinate.X, &coordinate.Y)
+	if err != nil {
+		return nil, err
+	}
+
+	return &coordinate, nil
+
+}
+
+func (s *storage) UpdateUserCoordinate(ctx context.Context, coordinate *models.Coordinate) error {
+	user_id := getUserId(ctx)
+
+	query := squirrel.Update(userTable).
+		SetMap(map[string]interface{}{
+			"coordinate_address_x": coordinate.X,
+			"coordinate_address_y": coordinate.Y,
+		}).
+		Where(squirrel.Eq{"user_id": user_id}).
+		RunWith(s.db).
+		PlaceholderFormat(squirrel.Dollar)
+
+	if _, err := query.ExecContext(ctx); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func getUserId(ctx context.Context) int64 {

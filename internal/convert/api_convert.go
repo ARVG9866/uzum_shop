@@ -52,25 +52,33 @@ func ModelToPbBasket(basket *models.Basket) *pb.Basket {
 
 func PbToModelOrder(order *pb.Order) *models.CreateOrder {
 	return &models.CreateOrder{
-		Address:              order.Address,
-		Coordinate_address_x: order.CoordinateAddressX,
-		Coordinate_address_y: order.CoordinateAddressY,
-		Coordinate_point_x:   order.CoordinatePointX,
-		Coordinate_point_y:   order.CoordinatePointY,
-		Courier_id:           order.CourierId,
+		Address: order.Address,
+		Coordinate_address: &models.Coordinate{
+			X: order.CoordinateAddress.X,
+			Y: order.CoordinateAddress.Y,
+		},
+		Coordinate_point: &models.Coordinate{
+			X: order.CoordinatePoint.X,
+			Y: order.CoordinatePoint.Y,
+		},
+		Courier_id: order.CourierId,
 	}
 }
 
 func GetModelOrder(createOrder *models.CreateOrder) *models.Order {
 	return &models.Order{
-		Address:              createOrder.Address,
-		Coordinate_address_x: createOrder.Coordinate_address_x,
-		Coordinate_address_y: createOrder.Coordinate_address_y,
-		Coordinate_point_x:   createOrder.Coordinate_point_x,
-		Coordinate_point_y:   createOrder.Coordinate_point_y,
-		Create_at:            time.Now(),
-		Start_at:             time.Now(),
-		Courier_id:           createOrder.Courier_id,
-		Delivery_status:      "New",
+		Address: createOrder.Address,
+		Coordinate_address: &models.Coordinate{
+			X: createOrder.Coordinate_address.X,
+			Y: createOrder.Coordinate_address.Y,
+		},
+		Coordinate_point: &models.Coordinate{
+			X: createOrder.Coordinate_point.X,
+			Y: createOrder.Coordinate_point.Y,
+		},
+		Create_at:       time.Now(),
+		Start_at:        time.Now(),
+		Courier_id:      createOrder.Courier_id,
+		Delivery_status: "New",
 	}
 }

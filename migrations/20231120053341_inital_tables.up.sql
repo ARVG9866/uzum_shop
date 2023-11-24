@@ -87,6 +87,17 @@ CREATE TABLE IF NOT EXISTS "delivery" (
     order_id INT REFERENCES "order" (id)
 );
 
+CREATE TABLE IF NOT EXISTS "history" (
+    id SERIAL PRIMARY KEY,
+    order_id INT,
+    product_id INT REFERENCES "product" (id),
+    price DECIMAL(10, 2), 
+    count INT,
+    changed_at TIMESTAMP
+    
+    FOREIGN KEY (order_id) REFERENCES "order" (id) ON DELETE CASCADE
+)
+
 COMMIT;
 
 -- migrate -path migrations -database "postgresql://delivery:delivery@localhost:5432/delivery?sslmode=disable" up
