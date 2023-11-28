@@ -7,6 +7,8 @@ import (
 	"github.com/ARVG9866/uzum_shop/internal/convert"
 	"github.com/ARVG9866/uzum_shop/internal/models"
 	"github.com/ARVG9866/uzum_shop/internal/storage"
+	pb_login "github.com/ARVG9866/uzum_shop/pkg/login_v1"
+	"google.golang.org/grpc/metadata"
 )
 
 type IShopService interface {
@@ -18,15 +20,18 @@ type IShopService interface {
 	GetBasket(ctx context.Context) ([]*models.Basket, error)
 	CreateOrder(ctx context.Context, order *models.CreateOrder) (int64, error)
 	CancelOrder(ctx context.Context, order_id int64) error
+	Login(ctx context.Context, login string, password string) (*models.Token, error)
 }
 
 type service struct {
-	storage storage.IStorage
+	storage     storage.IStorage
+	loginClient pb_login.LoginV1Client
 }
 
-func NewShopService(storage storage.IStorage) IShopService {
+func NewShopService(storage storage.IStorage, loginClient pb_login.LoginV1Client) IShopService {
 	return &service{
-		storage: storage,
+		storage:     storage,
+		loginClient: loginClient,
 	}
 }
 
@@ -35,7 +40,6 @@ func (s *service) GetProduct(ctx context.Context, product_id int64) (*models.Pro
 	if err != nil {
 		return res, err
 	}
-
 	return res, nil
 }
 
@@ -49,7 +53,11 @@ func (s *service) GetProducts(ctx context.Context) ([]*models.GetAllProduct, err
 }
 
 func (s *service) DeleteProduct(ctx context.Context, product_id int64) error {
-	err := s.storage.DeleteFromBasket(ctx, product_id)
+	user_id, err := s.GetUserFromToken(ctx)
+	if err != nil {
+		return err
+	}
+	err = s.storage.DeleteFromBasket(ctx, product_id, user_id)
 	if err != nil {
 		return err
 	}
@@ -87,7 +95,12 @@ func (s *service) UpdateBasket(ctx context.Context, basket *models.UpdateBasket)
 		return errors.New("There are not enough products")
 	}
 
-	err = s.storage.UpdateBasket(ctx, basket)
+	user_id, err := s.GetUserFromToken(ctx)
+	if err != nil {
+		return nil
+	}
+
+	err = s.storage.UpdateBasket(ctx, basket, user_id)
 	if err != nil {
 		return err
 	}
@@ -96,7 +109,12 @@ func (s *service) UpdateBasket(ctx context.Context, basket *models.UpdateBasket)
 }
 
 func (s *service) GetBasket(ctx context.Context) ([]*models.Basket, error) {
-	res, err := s.storage.GetAllBasket(ctx)
+	user_id, err := s.GetUserFromToken(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := s.storage.GetAllBasket(ctx, user_id)
 	if err != nil {
 		return res, err
 	}
@@ -105,8 +123,13 @@ func (s *service) GetBasket(ctx context.Context) ([]*models.Basket, error) {
 }
 
 func (s *service) CreateOrder(ctx context.Context, order *models.CreateOrder) (int64, error) {
+	user_id, err := s.GetUserFromToken(ctx)
+	if err != nil {
+		return 0, err
+	}
+
 	if order.Coordinate_address == nil || (order.Coordinate_address.X == 0 || order.Coordinate_address.Y == 0) {
-		coord, err := s.getUserCoordinate(ctx)
+		coord, err := s.getUserCoordinate(ctx, user_id)
 		if err != nil {
 			return 0, err
 		}
@@ -114,7 +137,7 @@ func (s *service) CreateOrder(ctx context.Context, order *models.CreateOrder) (i
 		order.Coordinate_address = coord
 	}
 
-	s.rewriteCoordinates(ctx, order.Coordinate_address)
+	s.rewriteCoordinates(ctx, order.Coordinate_address, user_id)
 
 	products, err := s.UpdateProductsForOrder(ctx)
 	if err != nil {
@@ -123,7 +146,7 @@ func (s *service) CreateOrder(ctx context.Context, order *models.CreateOrder) (i
 
 	modelOrder := convert.GetModelOrder(order)
 
-	order_id, err := s.storage.CreateOrder(ctx, modelOrder)
+	order_id, err := s.storage.CreateOrder(ctx, modelOrder, user_id)
 	if err != nil {
 		return order_id, err
 	}
@@ -133,7 +156,10 @@ func (s *service) CreateOrder(ctx context.Context, order *models.CreateOrder) (i
 		return order_id, err
 	}
 
-	err = s.storage.EmptyBasket(ctx)
+	err = s.storage.EmptyBasket(ctx, user_id)
+	if err != nil {
+		return order_id, err
+	}
 
 	return order_id, nil
 }
@@ -156,8 +182,8 @@ func (s *service) CancelOrder(ctx context.Context, order_id int64) error {
 // 	return nil
 // }
 
-func (s *service) getUserCoordinate(ctx context.Context) (*models.Coordinate, error) {
-	coordinate, err := s.storage.GetUserCoordinate(ctx)
+func (s *service) getUserCoordinate(ctx context.Context, user_id int64) (*models.Coordinate, error) {
+	coordinate, err := s.storage.GetUserCoordinate(ctx, user_id)
 	if err != nil {
 		return nil, err
 	}
@@ -169,9 +195,9 @@ func (s *service) getUserCoordinate(ctx context.Context) (*models.Coordinate, er
 	return nil, errors.New("User doesn't have coordinates")
 }
 
-func (s *service) rewriteCoordinates(ctx context.Context, coordinate *models.Coordinate) error {
+func (s *service) rewriteCoordinates(ctx context.Context, coordinate *models.Coordinate, user_id int64) error {
 
-	err := s.storage.UpdateUserCoordinate(ctx, coordinate)
+	err := s.storage.UpdateUserCoordinate(ctx, coordinate, user_id)
 	if err != nil {
 		return err
 	}
@@ -191,4 +217,28 @@ func (s *service) UpdateProductsForOrder(ctx context.Context) ([]*models.OrderPr
 	}
 
 	return products, nil
+}
+
+func (s *service) Login(ctx context.Context, login string, password string) (*models.Token, error) {
+	req := &pb_login.Login_Request{Login: login, Password: password}
+	auth, err := s.loginClient.Login(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return convert.GetToken(auth), nil
+}
+
+func (s *service) GetUserFromToken(ctx context.Context) (int64, error) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return 0, errors.New("Can't get context")
+	}
+	ctx = metadata.NewOutgoingContext(ctx, md)
+	check, err := s.loginClient.Check(ctx, &pb_login.Check_Request{EndpointAddress: ""})
+	if err != nil {
+		return 0, err
+	}
+
+	return check.UserId, nil
 }

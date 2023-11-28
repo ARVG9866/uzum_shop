@@ -32,6 +32,7 @@ func (a *App) Run() error {
 	wg.Wait()
 	return nil
 }
+
 func (a *App) runGRPC() error {
 	listener, err := net.Listen("tcp", a.appConfig.App.PortGRPC)
 	if err != nil {

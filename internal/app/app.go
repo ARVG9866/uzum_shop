@@ -10,11 +10,13 @@ import (
 	"github.com/kelseyhightower/envconfig"
 	"github.com/mvrilo/go-redoc"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/ARVG9866/uzum_shop/dev"
 	"github.com/ARVG9866/uzum_shop/internal/models"
 	"github.com/ARVG9866/uzum_shop/internal/service/shop_v1"
 	"github.com/ARVG9866/uzum_shop/internal/storage/postgresql"
+	pb_login "github.com/ARVG9866/uzum_shop/pkg/login_v1"
 )
 
 type App struct {
@@ -59,8 +61,15 @@ func (a *App) setConfig() {
 func (a *App) getService() shop_v1.IShopService {
 	storage := postgresql.NewStorage(a.db)
 
+	conn, err := grpc.Dial(a.appConfig.App.AuthClient, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		log.Fatalf("failed to connect to server: %v", err)
+	}
+
+	loginClient := pb_login.NewLoginV1Client(conn)
+
 	if a.shopService == nil {
-		a.shopService = shop_v1.NewShopService(storage)
+		a.shopService = shop_v1.NewShopService(storage, loginClient)
 
 	}
 	return a.shopService

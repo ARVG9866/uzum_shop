@@ -27,6 +27,7 @@ type Coordinate struct {
 }
 
 type OrderProduct struct {
-	Product_id int64 `json:"products_id"`
-	Count      int64 `json:"count"`
+	Product_id int64   `json:"products_id"`
+	Count      int64   `json:"count"`
+	Price      float64 `json:"price"`
 }

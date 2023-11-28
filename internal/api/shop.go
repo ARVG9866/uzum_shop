@@ -130,6 +130,18 @@ func (s *Shop) CancelOrder(ctx context.Context, req *pb.CancelOrder_Request) (*e
 	return &emptypb.Empty{}, err
 }
 
+func (s *Shop) Login(ctx context.Context, req *pb.Login_Request) (*pb.Login_Response, error) {
+	res, err := s.ShopService.Login(ctx, req.Login, req.Password)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pb.Login_Response{
+		RefreshToken: res.Refresh,
+		AccessToken:  res.Access,
+	}, nil
+}
+
 func (s *Shop) Healthz(ctx context.Context, _ *emptypb.Empty) (*emptypb.Empty, error) {
 	return &emptypb.Empty{}, nil
 }

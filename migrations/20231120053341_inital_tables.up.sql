@@ -41,14 +41,9 @@ CREATE TABLE IF NOT EXISTS "user" (
     role VARCHAR(50),
     address TEXT,
     coordinate_address_x DECIMAL(10, 6),
-    coordnates_address_y DECIMAL(10, 6),
+    coordinate_address_y DECIMAL(10, 6),
     deleted BOOLEAN DEFAULT FALSE
 );
-
-INSERT INTO "user" (name, surname, phone, login, password_hash, role, address, coordinate_address_x, coordnates_address_y) VALUES
-        ('user1', 'perviy', '+998805553535', 'user1', 'nothash', 'user', 'prospekt mira', 123.235, 112.236),
-        ('user2', 'vtoroy', '+998805553535', 'user2', 'nothash', 'user', 'prospekt nemira', 223.11, 122.00)
-;
 
 CREATE TABLE IF NOT EXISTS "order" (
     id SERIAL PRIMARY KEY,
@@ -70,6 +65,7 @@ CREATE TABLE IF NOT EXISTS "order_product" (
     order_id INT,
     product_id INT REFERENCES "product" (id),
 	count INT NOT NULL,
+    price DECIMAL(10, 2) NOT NULL,
 
 	FOREIGN KEY (order_id) REFERENCES "order" (id) ON DELETE CASCADE
 );
@@ -87,16 +83,21 @@ CREATE TABLE IF NOT EXISTS "delivery" (
     order_id INT REFERENCES "order" (id)
 );
 
-CREATE TABLE IF NOT EXISTS "history" (
+CREATE TABLE IF NOT EXISTS "order_for_delivery" (
     id SERIAL PRIMARY KEY,
-    order_id INT,
-    product_id INT REFERENCES "product" (id),
-    price DECIMAL(10, 2), 
-    count INT,
-    changed_at TIMESTAMP
-    
-    FOREIGN KEY (order_id) REFERENCES "order" (id) ON DELETE CASCADE
-)
+    order_name VARCHAR(30),
+    user_name VARCHAR(30),
+    phone VARCHAR(15),
+    address TEXT,
+    coordinate_address_x DECIMAL(10, 6) NOT NULL,
+    coordinate_address_y DECIMAL(10, 6) NOT NULL,
+    coordinate_opp_x DECIMAL(10, 6) NOT NULL,
+    coordinate_opp_y DECIMAL(10, 6) NOT NULL,
+    meta VARCHAR(200),
+    delivery_at TIMESTAMP,
+    courier_id INT,
+    status VARCHAR(50)
+);
 
 COMMIT;
 

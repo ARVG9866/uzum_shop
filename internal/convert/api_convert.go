@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ARVG9866/uzum_shop/internal/models"
+	pb_login "github.com/ARVG9866/uzum_shop/pkg/login_v1"
 	pb "github.com/ARVG9866/uzum_shop/pkg/shop_v1"
 )
 
@@ -80,5 +81,12 @@ func GetModelOrder(createOrder *models.CreateOrder) *models.Order {
 		Start_at:        time.Now(),
 		Courier_id:      createOrder.Courier_id,
 		Delivery_status: "New",
+	}
+}
+
+func GetToken(auth *pb_login.Login_Response) *models.Token {
+	return &models.Token{
+		Refresh: auth.RefreshToken,
+		Access:  auth.AccessToken,
 	}
 }

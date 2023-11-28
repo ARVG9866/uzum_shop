@@ -85,9 +85,9 @@ func (s *storage) CreateBasket(ctx context.Context, basket *models.Basket) error
 	return nil
 }
 
-func (s *storage) DeleteFromBasket(ctx context.Context, product_id int64) error {
+func (s *storage) DeleteFromBasket(ctx context.Context, product_id int64, user_id int64) error {
 	query := squirrel.Delete(basketTable).
-		Where(squirrel.Eq{"user_id": getUserId(ctx), "product_id": product_id}).
+		Where(squirrel.Eq{"user_id": user_id, "product_id": product_id}).
 		RunWith(s.db).
 		PlaceholderFormat(squirrel.Dollar)
 
@@ -98,9 +98,7 @@ func (s *storage) DeleteFromBasket(ctx context.Context, product_id int64) error 
 	return nil
 }
 
-func (s *storage) EmptyBasket(ctx context.Context) error {
-	user_id := getUserId(ctx)
-
+func (s *storage) EmptyBasket(ctx context.Context, user_id int64) error {
 	query := squirrel.Delete(basketTable).
 		Where(squirrel.Eq{"user_id": user_id}).
 		RunWith(s.db).
@@ -113,9 +111,7 @@ func (s *storage) EmptyBasket(ctx context.Context) error {
 	return nil
 }
 
-func (s *storage) UpdateBasket(ctx context.Context, basket *models.UpdateBasket) error {
-	user_id := getUserId(ctx)
-
+func (s *storage) UpdateBasket(ctx context.Context, basket *models.UpdateBasket, user_id int64) error {
 	query := squirrel.Update(basketTable).
 		SetMap(map[string]interface{}{
 			"count": basket.Count,
@@ -131,10 +127,8 @@ func (s *storage) UpdateBasket(ctx context.Context, basket *models.UpdateBasket)
 	return nil
 }
 
-func (s *storage) GetAllBasket(ctx context.Context) ([]*models.Basket, error) {
-	user_id := getUserId(ctx)
-
-	query := squirrel.Select("user_id", "product_id", "count").
+func (s *storage) GetAllBasket(ctx context.Context, user_id int64) ([]*models.Basket, error) {
+	query := squirrel.Select("id", "user_id", "product_id", "count").
 		From(basketTable).
 		Where(squirrel.Eq{"user_id": user_id}).
 		RunWith(s.db).
@@ -152,7 +146,7 @@ func (s *storage) GetAllBasket(ctx context.Context) ([]*models.Basket, error) {
 	for rows.Next() {
 		var row models.Basket
 
-		err = rows.Scan(&row.User_id, &row.Product_id, &row.Count)
+		err = rows.Scan(&row.Id, &row.User_id, &row.Product_id, &row.Count)
 		if err != nil {
 			return nil, err
 		}
@@ -163,9 +157,7 @@ func (s *storage) GetAllBasket(ctx context.Context) ([]*models.Basket, error) {
 	return basket, nil
 }
 
-func (s *storage) CreateOrder(ctx context.Context, order *models.Order) (int64, error) {
-	user_id := getUserId(ctx)
-
+func (s *storage) CreateOrder(ctx context.Context, order *models.Order, user_id int64) (int64, error) {
 	query := squirrel.Insert(orderTable).
 		Columns("user_id", "address", "coordinate_address_x", "coordinate_address_y", "coordinate_point_x",
 			"coordinate_point_y", "create_at", "start_at", "courier_id", "delivery_status").
@@ -261,10 +253,10 @@ func (s *storage) DeleteOrder(ctx context.Context, order_id int64) error {
 // }
 
 func (s *storage) AddToOrder(ctx context.Context, products []*models.OrderProduct, order_id int64) error {
-	query := squirrel.Insert(orderProductTable).Columns("order_id", "product_id", "count")
+	query := squirrel.Insert(orderProductTable).Columns("order_id", "product_id", "count", "price")
 
 	for _, product := range products {
-		query = query.Values(order_id, product.Product_id, product.Count)
+		query = query.Values(order_id, product.Product_id, product.Count, product.Price)
 	}
 
 	query = query.RunWith(s.db).PlaceholderFormat(squirrel.Dollar)
@@ -301,6 +293,7 @@ func (s *storage) UpdateBasketForOrder(ctx context.Context, basket []*models.Bas
 		el := &models.OrderProduct{
 			Product_id: product.Product_id,
 			Count:      product.Count,
+			Price:      res.Price,
 		}
 
 		products = append(products, el)
@@ -331,8 +324,7 @@ func (s *storage) UpdateBasketForOrder(ctx context.Context, basket []*models.Bas
 	return products, nil
 }
 
-func (s *storage) GetUserCoordinate(ctx context.Context) (*models.Coordinate, error) {
-	user_id := getUserId(ctx)
+func (s *storage) GetUserCoordinate(ctx context.Context, user_id int64) (*models.Coordinate, error) {
 	var coordinate models.Coordinate
 
 	query := squirrel.Select("id", "coordinate_address_x", "coordinate_address_y").
@@ -350,9 +342,7 @@ func (s *storage) GetUserCoordinate(ctx context.Context) (*models.Coordinate, er
 
 }
 
-func (s *storage) UpdateUserCoordinate(ctx context.Context, coordinate *models.Coordinate) error {
-	user_id := getUserId(ctx)
-
+func (s *storage) UpdateUserCoordinate(ctx context.Context, coordinate *models.Coordinate, user_id int64) error {
 	query := squirrel.Update(userTable).
 		SetMap(map[string]interface{}{
 			"coordinate_address_x": coordinate.X,
@@ -367,8 +357,4 @@ func (s *storage) UpdateUserCoordinate(ctx context.Context, coordinate *models.C
 	}
 
 	return nil
-}
-
-func getUserId(ctx context.Context) int64 {
-	return 1
 }
