@@ -1,0 +1,129 @@
+version: '3'
+services:
+  db:
+    container_name: db
+    image: postgres:11.4
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=delivery
+      - POSTGRES_PASSWORD=delivery
+      - POSTGRES_DB=delivery
+  
+  init:
+    container_name: init
+    build: 
+      context: .
+      dockerfile: .docker/init.Dockerfile
+    # restart: on-failure
+    depends_on:
+      - db
+    
+  migrate:
+    container_name: migrate
+    build:
+      context: .
+      dockerfile: .docker/migrate.Dockerfile
+    restart: on-failure
+    environment:
+      - POSTGRES_USER=delivery
+      - POSTGRES_PASSWORD=delivery
+      - POSTGRES_PORT=5432
+      - POSTGRES_HOST=db
+      - POSTGRES_DATABASE=delivery
+    depends_on:
+      - db
+
+  uzum_shop:
+    container_name: uzum_shop
+    build: 
+      context: .
+    ports:
+      - 8080:8080
+      - 9080:9080
+    environment:
+      - APP_PORT_GRPC=:9080
+      - APP_PORT_HTTP=:8080
+      # - APP_PORT_DOCS=:8085
+      - APP_AUTH_CLIENT=uzum_auth:9082
+      - POSTGRES_USER=delivery
+      - POSTGRES_PASSWORD=delivery
+      - POSTGRES_DATABASE=delivery
+      - POSTGRES_PORT=5432
+      - POSTGRES_HOST=db
+
+  uzum_delivery:
+    container_name: uzum_delivery
+    build: 
+      context: ../uzum_delivery
+    ports:
+      - 8000:8080
+      - 9000:9080
+    environment:
+      - APP_PORT_GRPC=:9080
+      - APP_PORT_HTTP=:8080
+      # - APP_PORT_DOCS=:8085
+      - APP_AUTH_CLIENT=uzum_auth:9082
+      - POSTGRES_USER=delivery
+      - POSTGRES_PASSWORD=delivery
+      - POSTGRES_DATABASE=delivery
+      - POSTGRES_PORT=5432
+      - POSTGRES_HOST=db
+
+  uzum_admin:
+    container_name: uzum_admin
+    build: 
+      context: ../uzum_admin
+    ports:
+      - 8010:8080
+      - 9010:9080
+    environment:
+      - APP_PORT_GRPC=:9080
+      - APP_PORT_HTTP=:8080
+      # - APP_PORT_DOCS=:8085
+      - APP_AUTH_CLIENT=uzum_auth:9082
+      - POSTGRES_USER=delivery
+      - POSTGRES_PASSWORD=delivery
+      - POSTGRES_DATABASE=delivery
+      - POSTGRES_PORT=5432
+      - POSTGRES_HOST=db
+
+  uzum_auth:
+    container_name: uzum_auth
+    build: 
+      context: ../uzum_auth
+    ports:
+      - 8081:8081
+      - 9081:9081
+      - 9082:9082
+    environment:
+      - APP_PORT_GRPC_AUTH=:9081
+      - APP_PORT_GRPC_LOGIN=:9082
+      - APP_PORT_HTTP_AUTH=:8081
+      - POSTGRES_USER=delivery
+      - POSTGRES_PASSWORD=delivery
+      - POSTGRES_DATABASE=delivery
+      - POSTGRES_PORT=5432
+      - POSTGRES_HOST=db
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - 22181:2181
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - 29092:29092
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1

@@ -45,3 +45,17 @@ migrate-up:
 
 migrate-down:
 	migrate -path migrations -database "postgresql://delivery:delivery@localhost:5432/delivery?sslmode=disable" down
+
+app_run:
+	docker-compose -f docker-compose.yaml down -v
+	docker-compose -f docker-compose.yaml up -d db
+	docker-compose -f docker-compose.yaml up -d init
+	docker-compose -f docker-compose.yaml up -d migrate
+	docker-compose -f docker-compose.yaml up -d uzum_auth
+	docker-compose -f docker-compose.yaml up -d uzum_shop
+	docker-compose -f docker-compose.yaml up -d uzum_delivery
+	docker-compose -f docker-compose.yaml up -d uzum_admin
+
+	docker-compose -f docker-compose.yaml up -d zookeeper
+	docker-compose -f docker-compose.yaml up -d kafka
+##	docker exec -it uzum_shop-kafka-1 kafka-topics --create --bootstrap-server localhost:29092 --topic my_topic --partitions 3 --replication-factor 1
